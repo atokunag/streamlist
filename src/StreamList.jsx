@@ -25,18 +25,18 @@ const SERVICES = [
 ];
 
 const TITLES = [
-  { id:1,  title:"オッペンハイマー",        type:"映画",  service:"prime",   year:2023, genre:"ドラマ",    duration:"180分",   thumb:"🎬", yt:"uYPbbksJxIg", desc:"原爆の父が向き合った光と影。クリストファー・ノーラン渾身の問題作。" },
-  { id:2,  title:"The Last of Us",          type:"ドラマ", service:"unext",   year:2023, genre:"アクション", duration:"S1 9話", thumb:"🎭", yt:"uLtkt6qdGbU", desc:"終末後の世界を旅するジョエルとエリー。ゲーム原作の傑作ドラマ化。" },
-  { id:3,  title:"ストレンジャー・シングス", type:"ドラマ", service:"netflix", year:2022, genre:"SF",       duration:"S4 9話", thumb:"🔮", yt:"sBEvEcpnG7k", desc:"ホーキンスの少年たちと逆さの世界の戦い。シーズン4は過去最高傑作。" },
-  { id:4,  title:"君たちはどう生きるか",     type:"映画",  service:"prime",   year:2023, genre:"アニメ",    duration:"124分",   thumb:"🦋", yt:"f7EDFdA10pg", desc:"宮崎駿の集大成。少年マヒトが迷い込む、生と死の狭間の世界。" },
-  { id:5,  title:"SHOGUN 将軍",             type:"ドラマ", service:"disney",  year:2024, genre:"時代劇",   duration:"S1 10話", thumb:"⚔️", yt:"o1gwnWs7sSc", desc:"戦国時代の日本に流れ着いたイギリス人航海士の壮大な物語。" },
-  { id:6,  title:"哀れなるものたち",         type:"映画",  service:"hulu",    year:2023, genre:"ドラマ",    duration:"141分",   thumb:"🌸", yt:"W4IVkGMSUkk", desc:"死から蘇った女性ベラの奇想天外な自己探求の旅。ヴェネチア金獅子賞受賞。" },
-  { id:7,  title:"ボーはおそれている",       type:"映画",  service:"unext",   year:2023, genre:"ホラー",    duration:"179分",   thumb:"😰", yt:"RNiDLGM9gAQ", desc:"アリ・アスター最新作。母の死の知らせから始まる悪夢の帰省。" },
-  { id:8,  title:"全裸監督",                type:"ドラマ", service:"netflix", year:2023, genre:"コメディ",  duration:"S2 7話", thumb:"🎥", yt:"N01X3_2MBdw", desc:"AV業界に革命を起こした村西とおるの破天荒な実話。" },
-  { id:9,  title:"CODA コーダ",            type:"映画",  service:"abema",   year:2021, genre:"ドラマ",    duration:"111分",   thumb:"🎵", yt:"O1N7T4S-bPU", desc:"ろう者の家族の中で一人だけ聴こえる少女の夢と葛藤。サンダンス映画祭席巻作。" },
-  { id:10, title:"インセプション",           type:"映画",  service:"netflix", year:2010, genre:"SF",       duration:"148分",   thumb:"🌀", yt:"YoHD9XEInc0", desc:"夢の中の夢を潜る泥棒たち。ノーランが仕掛けた壮大な知的迷宮。" },
-  { id:11, title:"ミッドサマー",            type:"映画",  service:"prime",   year:2019, genre:"ホラー",    duration:"148分",   thumb:"🌻", yt:"1Vnghdsjmd0", desc:"スウェーデンの白夜の祭りに迷い込んだカップルの悪夢。明るい画面のホラー。" },
-  { id:12, title:"パラサイト",              type:"映画",  service:"netflix", year:2019, genre:"スリラー",   duration:"132分",   thumb:"🏠", yt:"5xH0HfJHsaY", desc:"貧富の格差を描いたポン・ジュノの傑作。アカデミー賞4冠達成。" },
+  { id:1,  title:"オッペンハイマー",        type:"映画",  service:"prime",   year:2023, genre:"ドラマ",    duration:"180分",   thumb:"🎬", yt:"uYPbbksJxIg", desc:"原爆の父が向き合った光と影。クリストファー・ノーラン渾身の問題作。",        url:"https://www.amazon.co.jp/s?k=オッペンハイマー&i=instant-video" },
+  { id:2,  title:"The Last of Us",          type:"ドラマ", service:"unext",   year:2023, genre:"アクション", duration:"S1 9話", thumb:"🎭", yt:"uLtkt6qdGbU", desc:"終末後の世界を旅するジョエルとエリー。ゲーム原作の傑作ドラマ化。",          url:"https://video.unext.jp/search?q=The+Last+of+Us" },
+  { id:3,  title:"ストレンジャー・シングス", type:"ドラマ", service:"netflix", year:2022, genre:"SF",       duration:"S4 9話", thumb:"🔮", yt:"sBEvEcpnG7k", desc:"ホーキンスの少年たちと逆さの世界の戦い。シーズン4は過去最高傑作。",        url:"https://www.netflix.com/search?q=ストレンジャーシングス" },
+  { id:4,  title:"君たちはどう生きるか",     type:"映画",  service:"prime",   year:2023, genre:"アニメ",    duration:"124分",   thumb:"🦋", yt:"f7EDFdA10pg", desc:"宮崎駿の集大成。少年マヒトが迷い込む、生と死の狭間の世界。",              url:"https://www.amazon.co.jp/s?k=君たちはどう生きるか&i=instant-video" },
+  { id:5,  title:"SHOGUN 将軍",             type:"ドラマ", service:"disney",  year:2024, genre:"時代劇",   duration:"S1 10話", thumb:"⚔️", yt:"o1gwnWs7sSc", desc:"戦国時代の日本に流れ着いたイギリス人航海士の壮大な物語。",                url:"https://www.disneyplus.com/search/shogun" },
+  { id:6,  title:"哀れなるものたち",         type:"映画",  service:"hulu",    year:2023, genre:"ドラマ",    duration:"141分",   thumb:"🌸", yt:"W4IVkGMSUkk", desc:"死から蘇った女性ベラの奇想天外な自己探求の旅。ヴェネチア金獅子賞受賞。",  url:"https://www.hulu.jp/search?q=哀れなるものたち" },
+  { id:7,  title:"ボーはおそれている",       type:"映画",  service:"unext",   year:2023, genre:"ホラー",    duration:"179分",   thumb:"😰", yt:"RNiDLGM9gAQ", desc:"アリ・アスター最新作。母の死の知らせから始まる悪夢の帰省。",              url:"https://video.unext.jp/search?q=ボーはおそれている" },
+  { id:8,  title:"全裸監督",                type:"ドラマ", service:"netflix", year:2023, genre:"コメディ",  duration:"S2 7話", thumb:"🎥", yt:"N01X3_2MBdw", desc:"AV業界に革命を起こした村西とおるの破天荒な実話。",                        url:"https://www.netflix.com/search?q=全裸監督" },
+  { id:9,  title:"CODA コーダ",            type:"映画",  service:"abema",   year:2021, genre:"ドラマ",    duration:"111分",   thumb:"🎵", yt:"O1N7T4S-bPU", desc:"ろう者の家族の中で一人だけ聴こえる少女の夢と葛藤。サンダンス映画祭席巻作。", url:"https://abema.tv/search?q=CODA" },
+  { id:10, title:"インセプション",           type:"映画",  service:"netflix", year:2010, genre:"SF",       duration:"148分",   thumb:"🌀", yt:"YoHD9XEInc0", desc:"夢の中の夢を潜る泥棒たち。ノーランが仕掛けた壮大な知的迷宮。",            url:"https://www.netflix.com/search?q=インセプション" },
+  { id:11, title:"ミッドサマー",            type:"映画",  service:"prime",   year:2019, genre:"ホラー",    duration:"148分",   thumb:"🌻", yt:"1Vnghdsjmd0", desc:"スウェーデンの白夜の祭りに迷い込んだカップルの悪夢。明るい画面のホラー。",  url:"https://www.amazon.co.jp/s?k=ミッドサマー&i=instant-video" },
+  { id:12, title:"パラサイト",              type:"映画",  service:"netflix", year:2019, genre:"スリラー",   duration:"132分",   thumb:"🏠", yt:"5xH0HfJHsaY", desc:"貧富の格差を描いたポン・ジュノの傑作。アカデミー賞4冠達成。",              url:"https://www.netflix.com/search?q=パラサイト" },
 ];
 
 const PLAYLISTS_INIT = [
@@ -268,7 +268,7 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
   const goWatch = () => {
     cancelCD(); setMode("watching");
     if (onEnterWatching) onEnterWatching(idx);
-    window.open(s?.url, "_blank");
+    window.open(cur?.url || s?.url, "_blank");
   };
 
   const markDone = () => {
@@ -374,7 +374,7 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
           </div>
           <style>{`@keyframes dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}`}</style>
           <button onClick={markDone} style={{ width:"100%", padding:"17px", background:playlistColor, border:"none", borderRadius:14, color:"#000", fontSize:16, fontWeight:800, cursor:"pointer", letterSpacing:"0.02em", boxShadow:`0 6px 30px ${playlistColor}40`, marginBottom:11 }}>✅ 見終わった！</button>
-          <button onClick={()=>window.open(s?.url,"_blank")} style={{ width:"100%", padding:"12px", background:`${s?.color}18`, border:`1px solid ${s?.color}40`, borderRadius:12, color:s?.color, fontSize:13, fontWeight:700, cursor:"pointer" }}>{s?.name} をもう一度開く</button>
+          <button onClick={()=>window.open(cur?.url||s?.url,"_blank")} style={{ width:"100%", padding:"12px", background:`${s?.color}18`, border:`1px solid ${s?.color}40`, borderRadius:12, color:s?.color, fontSize:13, fontWeight:700, cursor:"pointer" }}>{s?.name} をもう一度開く</button>
         </div>
       </div>
     </div>
@@ -643,7 +643,7 @@ export default function StreamList() {
                         <div style={{ fontSize:10, color:T.muted, marginBottom:6 }}>{t.year} · {t.genre} · {t.duration}</div>
                         {t.desc && <div style={{ fontSize:11, color:T.muted, lineHeight:1.5, marginBottom:10, borderLeft:`2px solid ${s?.color}40`, paddingLeft:8 }}>{t.desc}</div>}
                         <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                          <a href={s?.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:11, fontWeight:800, color:s?.color, background:`${s?.color}16`, borderRadius:7, padding:"4px 10px", textDecoration:"none", letterSpacing:"0.02em" }}>{s?.name} →</a>
+                          <a href={t.url||s?.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:11, fontWeight:800, color:s?.color, background:`${s?.color}16`, borderRadius:7, padding:"4px 10px", textDecoration:"none", letterSpacing:"0.02em" }}>{s?.name} →</a>
                           <button onClick={()=>toggleW(t.id)} style={{ fontSize:11, border:"none", borderRadius:7, padding:"4px 10px", background:isW?"rgba(28,231,131,0.12)":T.surface, color:isW?"#1CE783":T.dim, cursor:"pointer" }}>{isW?"✓ 視聴済":"視聴済"}</button>
                           <button onClick={()=>toggleWL(t.id)} style={{ fontSize:11, border:"none", borderRadius:7, padding:"4px 10px", background:isWL?`${T.gold}15`:T.surface, color:isWL?T.gold:T.dim, cursor:"pointer" }}>{isWL?"★ 見たい":"見たい"}</button>
                           <button onClick={()=>setAddingTo(t.id)} style={{ fontSize:11, border:"none", borderRadius:7, padding:"4px 10px", background:`${T.purple}18`, color:T.purple, cursor:"pointer" }}>＋ リスト</button>
