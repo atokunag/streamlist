@@ -27,6 +27,18 @@ export async function getPoster(id, mediaType) {
   return posterUrl(data.poster_path);
 }
 
+export async function getSeasons(tvId) {
+  const res = await fetch(`${BASE}/tv/${tvId}?language=ja-JP`, { headers });
+  const data = await res.json();
+  return (data.seasons || []).filter(s => s.season_number > 0);
+}
+
+export async function getEpisodes(tvId, seasonNumber) {
+  const res = await fetch(`${BASE}/tv/${tvId}/season/${seasonNumber}?language=ja-JP`, { headers });
+  const data = await res.json();
+  return data.episodes || [];
+}
+
 export async function searchTitles(query) {
   if (!query || query.length < 2) return [];
 

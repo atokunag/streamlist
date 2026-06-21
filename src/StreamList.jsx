@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { searchTitles, getTitleDetails, posterUrl, getPoster } from "./tmdb.js";
+import { searchTitles, getTitleDetails, posterUrl, getPoster, getSeasons, getEpisodes } from "./tmdb.js";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -247,14 +247,119 @@ function PlaylistCard({ pl, onClick, onPlay, compact = false }) {
   );
 }
 
+// ── Episode Picker ────────────────────────────────────────────────────────────
+function EpisodePicker({ title, serviceColor, onClose, onWatch, watched, onToggle }) {
+  const [seasons,  setSeasons]  = useState([]);
+  const [selSeason,setSelSeason]= useState(null);
+  const [episodes, setEpisodes] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [epLoading,setEpLoading]= useState(false);
+
+  useEffect(() => {
+    if (!title.tmdbId) { setLoading(false); return; }
+    getSeasons(title.tmdbId).then(s => {
+      setSeasons(s);
+      if (s.length) setSelSeason(s[0].season_number);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [title.tmdbId]);
+
+  useEffect(() => {
+    if (!selSeason || !title.tmdbId) return;
+    setEpLoading(true);
+    setEpisodes([]);
+    getEpisodes(title.tmdbId, selSeason).then(eps => {
+      setEpisodes(eps);
+      setEpLoading(false);
+    }).catch(() => setEpLoading(false));
+  }, [selSeason, title.tmdbId]);
+
+  const epKey = (s, e) => `${title.id}-S${s}E${e}`;
+  const isWatched = (s, e) => watched.includes(epKey(s, e));
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(8,8,16,0.92)", backdropFilter:"blur(16px)", zIndex:220, display:"flex", alignItems:"flex-end" }}>
+      <div style={{ width:"100%", maxWidth:480, margin:"0 auto", background:T.card, borderRadius:"22px 22px 0 0", border:`1px solid ${T.border}`, borderBottom:"none", display:"flex", flexDirection:"column", maxHeight:"85vh" }}>
+        {/* Header */}
+        <div style={{ padding:"18px 20px 14px", borderBottom:`1px solid ${T.border}`, flexShrink:0 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
+            <div style={{ fontSize:16, fontWeight:800, color:T.cream, letterSpacing:"-0.02em" }}>{title.title}</div>
+            <button onClick={onClose} style={{ background:"none", border:"none", color:T.dim, fontSize:18, cursor:"pointer", padding:4 }}>✕</button>
+          </div>
+          <div style={{ fontSize:11, color:T.muted }}>エピソードを選んで視聴を開始</div>
+        </div>
+
+        {/* Season tabs */}
+        {seasons.length > 1 && (
+          <div style={{ display:"flex", gap:6, padding:"12px 16px", overflowX:"auto", borderBottom:`1px solid ${T.border}`, flexShrink:0 }}>
+            {seasons.map(s => (
+              <button key={s.season_number} onClick={() => setSelSeason(s.season_number)}
+                style={{ flexShrink:0, padding:"6px 14px", borderRadius:20, border:`1px solid ${selSeason===s.season_number ? serviceColor : T.border}`, background: selSeason===s.season_number ? `${serviceColor}20` : T.surface, color: selSeason===s.season_number ? serviceColor : T.muted, fontSize:12, fontWeight: selSeason===s.season_number ? 800 : 400, cursor:"pointer", whiteSpace:"nowrap" }}>
+                シーズン {s.season_number}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Episode list */}
+        <div style={{ overflowY:"auto", flex:1, padding:"10px 16px 24px" }}>
+          {loading || epLoading ? (
+            <div style={{ textAlign:"center", padding:40, color:T.muted, fontSize:13 }}>読み込み中…</div>
+          ) : episodes.length === 0 ? (
+            <div style={{ textAlign:"center", padding:40, color:T.dim, fontSize:13 }}>エピソード情報がありません</div>
+          ) : episodes.map(ep => {
+            const key = epKey(selSeason, ep.episode_number);
+            const done = isWatched(selSeason, ep.episode_number);
+            return (
+              <div key={ep.episode_number} style={{ display:"flex", alignItems:"flex-start", gap:12, padding:"12px 0", borderBottom:`1px solid ${T.border}` }}>
+                {/* Poster or number */}
+                <div style={{ flexShrink:0, width:80, height:52, borderRadius:8, overflow:"hidden", background:T.surface, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  {ep.still_path
+                    ? <img src={`https://image.tmdb.org/t/p/w185${ep.still_path}`} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                    : <div style={{ fontSize:18, color:T.dim, fontWeight:700 }}>E{ep.episode_number}</div>
+                  }
+                </div>
+                {/* Info */}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color: done ? T.dim : T.cream, letterSpacing:"-0.01em", marginBottom:2, textDecoration: done ? "line-through" : "none" }}>
+                    E{ep.episode_number}. {ep.name}
+                  </div>
+                  {ep.overview && (
+                    <div style={{ fontSize:10, color:T.dim, lineHeight:1.5, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
+                      {ep.overview}
+                    </div>
+                  )}
+                  <div style={{ display:"flex", gap:6, marginTop:7, alignItems:"center" }}>
+                    <button onClick={() => onWatch(selSeason, ep.episode_number, ep.name)}
+                      style={{ fontSize:11, fontWeight:800, background:serviceColor, border:"none", borderRadius:7, padding:"5px 11px", color:"#000", cursor:"pointer" }}>
+                      ここから見る →
+                    </button>
+                    <button onClick={() => onToggle(key)}
+                      style={{ fontSize:11, background: done ? "rgba(28,231,131,0.12)" : T.bg, border:`1px solid ${done?"rgba(28,231,131,0.4)":T.border}`, borderRadius:7, padding:"4px 10px", color: done ? "#1CE783" : T.dim, cursor:"pointer" }}>
+                      {done ? "✓ 視聴済" : "視聴済にする"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Trailer Player ────────────────────────────────────────────────────────────
 function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onClose, onMarkWatched, onEnterWatching }) {
-  const [idx,        setIdx]       = useState(startIndex);
-  const [mode,       setMode]      = useState("trailer");
-  const [watched,    setWatched]   = useState({});
-  const [elapsed,    setElapsed]   = useState(0);
-  const [showNextUp, setShowNextUp]= useState(false);
-  const [visible,    setVisible]   = useState(true);
+  const [idx,          setIdx]         = useState(startIndex);
+  const [mode,         setMode]         = useState("trailer");
+  const [watched,      setWatched]      = useState({});
+  const [elapsed,      setElapsed]      = useState(0);
+  const [showNextUp,   setShowNextUp]   = useState(false);
+  const [visible,      setVisible]      = useState(true);
+  const [showEpisodes, setShowEpisodes] = useState(false);
+  const [watchedEps,   setWatchedEps]   = useState([]);
+  const [startEpLabel, setStartEpLabel] = useState(null);
   const delayRef = useRef(null);
   const elRef    = useRef(null);
 
@@ -455,8 +560,16 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
 
         {/* Primary CTA — watch on service */}
         <button onClick={goWatch} style={{ width:"100%", padding:"16px", background:s?.color, border:"none", borderRadius:14, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer", marginBottom:8, boxSizing:"border-box", letterSpacing:"0.02em", boxShadow:`0 4px 20px ${s?.color}55` }}>
-          ▶ {s?.name} で本編を見る
+          ▶ {s?.name} で{cur?.type==="ドラマ" && startEpLabel ? `${startEpLabel}から` : ""}本編を見る
         </button>
+
+        {/* Episode picker button for dramas */}
+        {cur?.type === "ドラマ" && cur?.tmdbId && (
+          <button onClick={()=>setShowEpisodes(true)}
+            style={{ width:"100%", padding:"11px", background:T.card, border:`1px solid ${s?.color}50`, borderRadius:11, color:s?.color, fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:8 }}>
+            🎬 エピソードを選ぶ {startEpLabel ? `(${startEpLabel})` : ""}
+          </button>
+        )}
 
         {/* Secondary: check-in */}
         {watched[cur?.id]
@@ -500,6 +613,22 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
           );
         })}
       </div>
+
+      {/* Episode Picker modal */}
+      {showEpisodes && cur && (
+        <EpisodePicker
+          title={cur}
+          serviceColor={s?.color || playlistColor}
+          onClose={() => setShowEpisodes(false)}
+          onWatch={(season, ep, epName) => {
+            setStartEpLabel(`S${season}E${ep}`);
+            setShowEpisodes(false);
+            goWatch();
+          }}
+          watched={watchedEps}
+          onToggle={key => setWatchedEps(p => p.includes(key) ? p.filter(k=>k!==key) : [...p, key])}
+        />
+      )}
     </div>
   );
 }
