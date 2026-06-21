@@ -310,7 +310,7 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
   };
 
   const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
-  const ytSrc = cur?.yt ? `https://www.youtube.com/embed/${cur.yt}?autoplay=1&mute=1&rel=0&modestbranding=1` : null;
+  const ytSrc = cur?.yt ? `https://www.youtube.com/embed/${cur.yt}?autoplay=1&mute=0&rel=0&modestbranding=1` : null;
 
   const base = { position:"fixed", inset:0, zIndex:200, background:T.bg, display:"flex", flexDirection:"column", maxWidth:480, margin:"0 auto", fontFamily:"'Helvetica Neue','Hiragino Kaku Gothic ProN',sans-serif" };
 
