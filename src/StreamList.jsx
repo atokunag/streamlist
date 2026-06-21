@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { searchTitles, getTitleDetails, posterUrl, getPoster, getSeasons, getEpisodes } from "./tmdb.js";
+import { searchTitles, getTitleDetails, posterUrl, getPoster, getSeasons, getEpisodes, getTrailerKey } from "./tmdb.js";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -360,6 +360,7 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [watchedEps,   setWatchedEps]   = useState([]);
   const [startEpLabel, setStartEpLabel] = useState(null);
+  const [ytKeys,       setYtKeys]       = useState({});
   const delayRef = useRef(null);
   const elRef    = useRef(null);
 
@@ -374,6 +375,18 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
   };
 
   useEffect(() => () => clearAllTimers(), []);
+
+  // Fetch YouTube trailer keys for titles that don't have one
+  useEffect(() => {
+    titles.forEach(t => {
+      if (!t.yt && t.tmdbId && !ytKeys[t.id]) {
+        const mediaType = t.mediaType || (t.type === "映画" ? "movie" : "tv");
+        getTrailerKey(t.tmdbId, mediaType).then(key => {
+          if (key) setYtKeys(p => ({ ...p, [t.id]: key }));
+        }).catch(() => {});
+      }
+    });
+  }, [titles]);
 
   useEffect(() => {
     if (mode !== "watching") { clearInterval(elRef.current); return; }
@@ -415,7 +428,8 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
   };
 
   const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
-  const ytSrc = cur?.yt ? `https://www.youtube.com/embed/${cur.yt}?autoplay=1&mute=0&rel=0&modestbranding=1` : null;
+  const ytKey = cur?.yt || ytKeys[cur?.id] || null;
+  const ytSrc = ytKey ? `https://www.youtube.com/embed/${ytKey}?autoplay=1&mute=0&rel=0&modestbranding=1` : null;
 
   const base = { position:"fixed", inset:0, zIndex:200, background:T.bg, display:"flex", flexDirection:"column", maxWidth:480, margin:"0 auto", fontFamily:"'Helvetica Neue','Hiragino Kaku Gothic ProN',sans-serif" };
 

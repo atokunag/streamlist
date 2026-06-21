@@ -27,6 +27,21 @@ export async function getPoster(id, mediaType) {
   return posterUrl(data.poster_path);
 }
 
+export async function getTrailerKey(id, mediaType) {
+  const res = await fetch(`${BASE}/${mediaType}/${id}/videos?language=ja-JP`, { headers });
+  const data = await res.json();
+  const results = data.results || [];
+  // prefer Japanese trailer, fall back to English
+  const pick = (list) => list.find(v => v.site === "YouTube" && v.type === "Trailer")
+                       || list.find(v => v.site === "YouTube");
+  const jaTrailer = pick(results.filter(v => v.iso_639_1 === "ja"));
+  if (jaTrailer) return jaTrailer.key;
+  // fallback: fetch English videos
+  const res2 = await fetch(`${BASE}/${mediaType}/${id}/videos`, { headers });
+  const data2 = await res2.json();
+  return pick(data2.results || [])?.key || null;
+}
+
 export async function getSeasons(tvId) {
   const res = await fetch(`${BASE}/tv/${tvId}?language=ja-JP`, { headers });
   const data = await res.json();
