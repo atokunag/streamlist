@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { searchTitles, getTitleDetails, posterUrl } from "./tmdb.js";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -479,10 +480,15 @@ export default function StreamList() {
   const [plMood,     setPlMood]     = useState("🎬");
   const [watched,    setWatched]    = useState([1,11]);
   const [wantList,   setWantList]   = useState([3,4,8]);
-  const [filter,     setFilter]     = useState("all");
-  const [toast,      setToast]      = useState(null);
-  const [addingTo,   setAddingTo]   = useState(null);
-  const [search,     setSearch]     = useState("");
+  const [filter,       setFilter]       = useState("all");
+  const [toast,        setToast]        = useState(null);
+  const [addingTo,     setAddingTo]     = useState(null);
+  const [search,       setSearch]       = useState("");
+  const [tmdbResults,  setTmdbResults]  = useState([]);
+  const [tmdbLoading,  setTmdbLoading]  = useState(false);
+  const [tmdbDetail,   setTmdbDetail]   = useState(null);
+  const [detailLoading,setDetailLoading]= useState(false);
+  const searchTimer = useRef(null);
   const plId = useRef(20);
 
   const showToast = (msg, color=T.gold) => { setToast({msg,color}); setTimeout(()=>setToast(null),2500); };
@@ -509,6 +515,38 @@ export default function StreamList() {
     setPlaylists(p=>[...p,{id:++plId.current,name:plName,desc:plDesc,items:[],shared:false,color:cols[Math.floor(Math.random()*cols.length)],mood:plMood}]);
     setPlName("");setPlDesc("");setPlMood("🎬");setShowCreate(false);
     showToast("プレイリストを作成しました");
+  };
+
+  const onSearchChange = (val) => {
+    setSearch(val);
+    clearTimeout(searchTimer.current);
+    if (!val.trim()) { setTmdbResults([]); return; }
+    setTmdbLoading(true);
+    searchTimer.current = setTimeout(async () => {
+      const results = await searchTitles(val);
+      setTmdbResults(results);
+      setTmdbLoading(false);
+    }, 500);
+  };
+
+  const openTmdbDetail = async (item) => {
+    setDetailLoading(true);
+    setTmdbDetail(null);
+    const detail = await getTitleDetails(item.id, item.media_type);
+    setTmdbDetail(detail);
+    setDetailLoading(false);
+  };
+
+  const addTmdbToPl = (plId2, detail) => {
+    const newId = Date.now();
+    const newTitle = { id: newId, ...detail, yt: null };
+    // Add to global TITLES array at runtime
+    TITLES.push(newTitle);
+    setPlaylists(p => p.map(pl => pl.id === plId2 ? { ...pl, items: [...pl.items, newId] } : pl));
+    setTmdbDetail(null);
+    setTmdbResults([]);
+    setSearch("");
+    showToast("プレイリストに追加しました");
   };
 
   const addToPl = (plId2, titleId) => { setPlaylists(p=>p.map(pl=>pl.id===plId2&&!pl.items.includes(titleId)?{...pl,items:[...pl.items,titleId]}:pl)); setAddingTo(null); showToast("追加しました"); };
@@ -621,15 +659,83 @@ export default function StreamList() {
             {/* Search */}
             <div style={{ position:"relative", marginBottom:14 }}>
               <div style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:T.dim, fontSize:14 }}>🔍</div>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="タイトル・ジャンルで検索"
+              <input value={search} onChange={e=>onSearchChange(e.target.value)} placeholder="TMDBで検索（日本語・英語OK）"
                 style={{ width:"100%", padding:"11px 14px 11px 36px", background:T.card, border:`1px solid ${T.border}`, borderRadius:12, color:T.cream, fontSize:13, outline:"none", boxSizing:"border-box", letterSpacing:"-0.01em" }} />
+              {tmdbLoading && <div style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", fontSize:11, color:T.muted }}>検索中…</div>}
             </div>
-            {/* Filter chips */}
-            <div style={{ display:"flex", gap:7, overflowX:"auto", paddingBottom:12, marginBottom:14 }}>
+
+            {/* TMDB search results */}
+            {tmdbResults.length > 0 && (
+              <div style={{ marginBottom:20 }}>
+                <Label color={T.purple}>TMDB検索結果 — タップして詳細を確認</Label>
+                <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+                  {tmdbResults.map(item => {
+                    const title = item.title || item.name;
+                    const year  = (item.release_date || item.first_air_date || "").slice(0,4);
+                    const type  = item.media_type === "movie" ? "映画" : "ドラマ";
+                    return (
+                      <div key={item.id} onClick={()=>openTmdbDetail(item)}
+                        style={{ background:T.card, borderRadius:12, padding:"12px 14px", border:`1px solid ${T.purple}30`, display:"flex", alignItems:"center", gap:12, cursor:"pointer" }}>
+                        {item.poster_path
+                          ? <img src={posterUrl(item.poster_path)} alt={title} style={{ width:40, height:60, borderRadius:6, objectFit:"cover", flexShrink:0 }} />
+                          : <div style={{ width:40, height:60, borderRadius:6, background:T.surface, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>{type==="映画"?"🎬":"🎭"}</div>
+                        }
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:13, fontWeight:700, color:T.cream, letterSpacing:"-0.01em", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{title}</div>
+                          <div style={{ fontSize:10, color:T.muted, marginTop:3 }}>{year} · {type}</div>
+                          <div style={{ fontSize:10, color:T.dim, marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.overview}</div>
+                        </div>
+                        <div style={{ fontSize:10, color:T.purple, fontWeight:700, flexShrink:0 }}>詳細 →</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* TMDB detail modal */}
+            {(tmdbDetail || detailLoading) && (
+              <div style={{ position:"fixed", inset:0, background:"rgba(8,8,16,0.9)", backdropFilter:"blur(16px)", zIndex:180, display:"flex", alignItems:"flex-end" }}>
+                <div style={{ width:"100%", maxWidth:480, margin:"0 auto", background:T.card, borderRadius:"22px 22px 0 0", padding:24, maxHeight:"80vh", overflowY:"auto", border:`1px solid ${T.border}`, borderBottom:"none" }}>
+                  {detailLoading ? (
+                    <div style={{ textAlign:"center", padding:40, color:T.muted }}>読み込み中…</div>
+                  ) : tmdbDetail && (
+                    <>
+                      <div style={{ display:"flex", gap:14, marginBottom:16 }}>
+                        {tmdbDetail.poster
+                          ? <img src={tmdbDetail.poster} alt={tmdbDetail.title} style={{ width:70, height:105, borderRadius:10, objectFit:"cover", flexShrink:0 }} />
+                          : <div style={{ width:70, height:105, borderRadius:10, background:T.surface, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28 }}>{tmdbDetail.thumb}</div>
+                        }
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontSize:17, fontWeight:800, color:T.cream, letterSpacing:"-0.02em", lineHeight:1.3, marginBottom:5 }}>{tmdbDetail.title}</div>
+                          <div style={{ fontSize:11, color:T.muted, marginBottom:6 }}>{tmdbDetail.year} · {tmdbDetail.genre} · {tmdbDetail.duration}</div>
+                          {tmdbDetail.service
+                            ? <ServiceBadge serviceId={tmdbDetail.service} />
+                            : <span style={{ fontSize:10, color:T.dim, background:T.surface, borderRadius:5, padding:"2px 8px" }}>配信情報なし</span>
+                          }
+                        </div>
+                      </div>
+                      {tmdbDetail.desc && <div style={{ fontSize:12, color:T.muted, lineHeight:1.6, marginBottom:16, borderLeft:`2px solid ${T.purple}50`, paddingLeft:10 }}>{tmdbDetail.desc}</div>}
+                      <Label color={T.dim}>追加するプレイリストを選択</Label>
+                      {playlists.map(pl=>(
+                        <button key={pl.id} onClick={()=>addTmdbToPl(pl.id, tmdbDetail)}
+                          style={{ display:"block", width:"100%", textAlign:"left", background:T.surface, border:`1px solid ${T.border}`, borderRadius:10, padding:"11px 14px", marginBottom:7, cursor:"pointer", color:T.cream, fontSize:13 }}>
+                          <span style={{ color:pl.color, marginRight:8 }}>{pl.mood}</span>{pl.name}
+                        </button>
+                      ))}
+                      <button onClick={()=>{setTmdbDetail(null);setDetailLoading(false);}} style={{ background:"none", border:"none", color:T.dim, fontSize:12, cursor:"pointer", marginTop:6 }}>キャンセル</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Filter chips — only show when not searching */}
+            {!search && <div style={{ display:"flex", gap:7, overflowX:"auto", paddingBottom:12, marginBottom:14 }}>
               {[{id:"all",name:"すべて",color:T.gold},...SERVICES.map(s=>({id:s.id,name:s.name,color:s.color}))].map(s=>(
                 <button key={s.id} onClick={()=>setFilter(s.id)} style={{ background:filter===s.id?s.color:T.card, color:filter===s.id?"#000":T.muted, border:`1px solid ${filter===s.id?s.color:T.border}`, borderRadius:20, padding:"6px 13px", fontSize:11, cursor:"pointer", flexShrink:0, fontWeight:filter===s.id?800:400, letterSpacing:filter===s.id?"0.02em":0, transition:"all 0.15s" }}>{s.name}</button>
               ))}
-            </div>
+            </div>}
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {filtered.map(t=>{
                 const s=svc(t.service); const isW=watched.includes(t.id); const isWL=wantList.includes(t.id);
