@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { searchTitles, getTitleDetails, posterUrl, getPoster } from "./tmdb.js";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -249,30 +249,26 @@ function PlaylistCard({ pl, onClick, onPlay, compact = false }) {
 
 // ── Trailer Player ────────────────────────────────────────────────────────────
 function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onClose, onMarkWatched, onEnterWatching }) {
-  const [idx,       setIdx]       = useState(startIndex);
-  const [mode,      setMode]      = useState("trailer");
-  const [watched,   setWatched]   = useState({});
-  const [countdown, setCountdown] = useState(null);
-  const [elapsed,   setElapsed]   = useState(0);
-  const cdRef = useRef(null);
-  const elRef = useRef(null);
+  const [idx,        setIdx]       = useState(startIndex);
+  const [mode,       setMode]      = useState("trailer");
+  const [watched,    setWatched]   = useState({});
+  const [elapsed,    setElapsed]   = useState(0);
+  const [showNextUp, setShowNextUp]= useState(false);
+  const [visible,    setVisible]   = useState(true);
+  const delayRef = useRef(null);
+  const elRef    = useRef(null);
 
   const cur    = titles[idx];
   const s      = svc(cur?.service);
   const isLast = idx >= titles.length - 1;
   const done   = Object.keys(watched).length;
 
-  const startCD = useCallback(() => {
-    if (idx >= titles.length - 1) return;
-    setCountdown(8);
-  }, [idx, titles.length]);
+  const clearAllTimers = () => {
+    clearTimeout(delayRef.current);
+    clearInterval(elRef.current);
+  };
 
-  useEffect(() => {
-    if (countdown === null) return;
-    if (countdown === 0) { goNext(); return; }
-    cdRef.current = setTimeout(() => setCountdown(c => c-1), 1000);
-    return () => clearTimeout(cdRef.current);
-  }, [countdown]);
+  useEffect(() => () => clearAllTimers(), []);
 
   useEffect(() => {
     if (mode !== "watching") { clearInterval(elRef.current); return; }
@@ -281,18 +277,33 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
     return () => clearInterval(elRef.current);
   }, [mode, idx]);
 
-  const cancelCD = () => { clearTimeout(cdRef.current); setCountdown(null); };
-  const goNext = () => { cancelCD(); setMode("trailer"); setIdx(i => Math.min(i+1, titles.length-1)); };
-  const goPrev = () => { cancelCD(); setMode("trailer"); setIdx(i => Math.max(i-1, 0)); };
+  const navigateTo = (newIdx) => {
+    clearAllTimers();
+    setShowNextUp(false);
+    setVisible(false);
+    setTimeout(() => { setMode("trailer"); setIdx(newIdx); setVisible(true); }, 220);
+  };
+
+  const goNext = () => navigateTo(Math.min(idx + 1, titles.length - 1));
+  const goPrev = () => navigateTo(Math.max(idx - 1, 0));
+
+  const onIframeLoad = () => {
+    clearTimeout(delayRef.current);
+    if (!isLast) {
+      delayRef.current = setTimeout(() => setShowNextUp(true), 75000);
+    }
+  };
 
   const goWatch = () => {
-    cancelCD(); setMode("watching");
+    clearAllTimers();
+    setShowNextUp(false);
+    setMode("watching");
     if (onEnterWatching) onEnterWatching(idx);
     window.open(cur?.url || s?.url, "_blank");
   };
 
   const markDone = () => {
-    clearInterval(elRef.current);
+    clearAllTimers();
     setWatched(p => ({...p, [cur.id]:true}));
     if (onMarkWatched) onMarkWatched(cur.id, Math.min(idx+1, titles.length-1));
     setMode("checkin");
@@ -376,25 +387,28 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
   // WATCHING
   if (mode === "watching") return (
     <div style={base}>
-      <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:130, opacity:0.04, userSelect:"none" }}>{cur?.thumb}</div>
+      <style>{`@keyframes dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}`}</style>
+      <div style={{ position:"absolute", inset:0, background:`radial-gradient(circle at 50% 40%, ${s?.color}12 0%, transparent 70%)`, userSelect:"none" }} />
       <div style={{ flex:1, display:"flex", flexDirection:"column", padding:"28px 24px", position:"relative", zIndex:1 }}>
-        <button onClick={()=>setMode("trailer")} style={{ background:"none", border:"none", color:T.dim, fontSize:13, cursor:"pointer", alignSelf:"flex-start", marginBottom:28, padding:0, letterSpacing:"0.05em" }}>← 予告編</button>
+        <button onClick={()=>setMode("trailer")} style={{ background:"none", border:"none", color:T.dim, fontSize:13, cursor:"pointer", alignSelf:"flex-start", marginBottom:28, padding:0, letterSpacing:"0.05em" }}>← 予告編に戻る</button>
         <div style={{ flex:1, display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center" }}>
-          <div style={{ fontSize:9, color:playlistColor, letterSpacing:"0.22em", textTransform:"uppercase", marginBottom:14 }}>Now Watching</div>
-          <div style={{ fontSize:28, fontWeight:800, textAlign:"center", marginBottom:5, color:T.cream, letterSpacing:"-0.03em", lineHeight:1.2 }}>{cur?.title}</div>
-          <div style={{ fontSize:12, color:T.muted, marginBottom:4 }}>{cur?.type} · {cur?.duration}</div>
-          <ServiceBadge serviceId={cur?.service} size="md" />
-          {/* Elapsed */}
-          <div style={{ fontSize:52, fontWeight:100, color:playlistColor, letterSpacing:"0.06em", marginTop:32, marginBottom:6, fontVariantNumeric:"tabular-nums" }}>{fmt(elapsed)}</div>
-          <div style={{ fontSize:10, color:T.dim, letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:44 }}>経過時間</div>
-          {/* Live dot */}
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:40, color:T.muted, fontSize:11 }}>
+          {/* Live badge */}
+          <div style={{ display:"flex", alignItems:"center", gap:8, background:`${s?.color}18`, border:`1px solid ${s?.color}40`, borderRadius:20, padding:"5px 14px", marginBottom:24 }}>
             <div style={{ width:7, height:7, borderRadius:"50%", background:s?.color, boxShadow:`0 0 8px ${s?.color}`, animation:"dot 2s infinite" }} />
-            {s?.name} で視聴中
+            <div style={{ fontSize:11, color:s?.color, fontWeight:700 }}>{s?.name} で視聴中</div>
           </div>
-          <style>{`@keyframes dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}`}</style>
-          <button onClick={markDone} style={{ width:"100%", padding:"17px", background:playlistColor, border:"none", borderRadius:14, color:"#000", fontSize:16, fontWeight:800, cursor:"pointer", letterSpacing:"0.02em", boxShadow:`0 6px 30px ${playlistColor}40`, marginBottom:11 }}>✅ 見終わった！</button>
-          <button onClick={()=>window.open(cur?.url||s?.url,"_blank")} style={{ width:"100%", padding:"12px", background:`${s?.color}18`, border:`1px solid ${s?.color}40`, borderRadius:12, color:s?.color, fontSize:13, fontWeight:700, cursor:"pointer" }}>{s?.name} をもう一度開く</button>
+
+          <div style={{ fontSize:28, fontWeight:800, textAlign:"center", marginBottom:5, color:T.cream, letterSpacing:"-0.03em", lineHeight:1.2 }}>{cur?.title}</div>
+          <div style={{ fontSize:12, color:T.muted, marginBottom:28 }}>{cur?.type} · {cur?.duration}</div>
+
+          {/* Elapsed */}
+          <div style={{ fontSize:56, fontWeight:100, color:playlistColor, letterSpacing:"0.08em", marginBottom:4, fontVariantNumeric:"tabular-nums" }}>{fmt(elapsed)}</div>
+          <div style={{ fontSize:10, color:T.dim, letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:44 }}>経過時間</div>
+
+          {/* Primary: done */}
+          <button onClick={markDone} style={{ width:"100%", padding:"18px", background:playlistColor, border:"none", borderRadius:14, color:"#000", fontSize:17, fontWeight:800, cursor:"pointer", letterSpacing:"0.02em", boxShadow:`0 6px 30px ${playlistColor}40`, marginBottom:10 }}>✅ 見終わった！</button>
+          {/* Secondary: reopen */}
+          <button onClick={()=>window.open(cur?.url||s?.url,"_blank")} style={{ width:"100%", padding:"13px", background:`${s?.color}14`, border:`1px solid ${s?.color}35`, borderRadius:12, color:s?.color, fontSize:13, fontWeight:700, cursor:"pointer" }}>{s?.name} をもう一度開く</button>
         </div>
       </div>
     </div>
@@ -403,6 +417,11 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
   // TRAILER
   return (
     <div style={{ ...base, background:"#000" }}>
+      <style>{`
+        @keyframes fadeIn { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes slideUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+      `}</style>
+
       {/* Overlay header */}
       <div style={{ display:"flex", alignItems:"center", gap:10, padding:"14px 16px", background:"linear-gradient(180deg,rgba(0,0,0,.85)0%,transparent)", position:"absolute", top:0, left:0, right:0, zIndex:10 }}>
         <button onClick={onClose} style={{ background:"rgba(255,255,255,0.12)", backdropFilter:"blur(10px)", border:"1px solid rgba(255,255,255,0.15)", borderRadius:"50%", width:34, height:34, color:"#fff", fontSize:15, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
@@ -416,61 +435,59 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
       {/* YouTube */}
       <div style={{ position:"relative", width:"100%", paddingTop:"56.25%", background:"#050508" }}>
         {ytSrc
-          ? <iframe key={cur?.yt} src={ytSrc} allow="autoplay; fullscreen" allowFullScreen style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", border:"none" }} onLoad={()=>setTimeout(()=>startCD(),15000)} />
+          ? <iframe key={cur?.yt} src={ytSrc} allow="autoplay; fullscreen" allowFullScreen
+              style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", border:"none" }}
+              onLoad={onIframeLoad} />
           : <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:52 }}>{cur?.thumb}</div>
         }
       </div>
 
       {/* Controls panel */}
-      <div style={{ flex:1, padding:"16px 18px", background:T.bg, overflowY:"auto" }}>
+      <div style={{ flex:1, padding:"16px 18px", background:T.bg, overflowY:"auto",
+        opacity: visible ? 1 : 0, transition:"opacity 0.22s ease" }}>
+
         {/* Title + desc */}
-        <div style={{ marginBottom:16 }}>
+        <div style={{ marginBottom:14, animation: visible ? "fadeIn 0.3s ease" : "none" }}>
           <div style={{ fontSize:21, fontWeight:800, letterSpacing:"-0.03em", color:T.cream, marginBottom:4, lineHeight:1.2 }}>{cur?.title}</div>
           <div style={{ fontSize:11, color:T.muted, marginBottom:8 }}>{cur?.year} · {cur?.genre} · {cur?.type} · {cur?.duration}</div>
           {cur?.desc && <div style={{ fontSize:12, color:T.muted, lineHeight:1.6, borderLeft:`2px solid ${playlistColor}55`, paddingLeft:10 }}>{cur.desc}</div>}
         </div>
 
-        {/* Primary CTA */}
-        <button onClick={goWatch} style={{ width:"100%", padding:"14px", background:s?.color, border:"none", borderRadius:13, color:"#fff", fontSize:14, fontWeight:800, cursor:"pointer", marginBottom:9, boxSizing:"border-box", letterSpacing:"0.02em" }}>
-          {s?.name} で本編を見に行く →
+        {/* Primary CTA — watch on service */}
+        <button onClick={goWatch} style={{ width:"100%", padding:"16px", background:s?.color, border:"none", borderRadius:14, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer", marginBottom:8, boxSizing:"border-box", letterSpacing:"0.02em", boxShadow:`0 4px 20px ${s?.color}55` }}>
+          ▶ {s?.name} で本編を見る
         </button>
 
-        {/* Check-in / already done */}
+        {/* Secondary: check-in */}
         {watched[cur?.id]
-          ? <button onClick={()=>setMode("checkin")} style={{ width:"100%", padding:"11px", background:"rgba(28,231,131,0.1)", border:"1px solid rgba(28,231,131,0.3)", borderRadius:11, color:"#1CE783", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:12 }}>✅ 視聴済み — 次へ</button>
-          : <button onClick={markDone} style={{ width:"100%", padding:"11px", background:T.card, border:`1px solid ${T.border}`, borderRadius:11, color:T.muted, fontSize:13, cursor:"pointer", marginBottom:12 }}>見終わった！チェックイン →</button>
+          ? <button onClick={()=>setMode("checkin")} style={{ width:"100%", padding:"11px", background:"rgba(28,231,131,0.1)", border:"1px solid rgba(28,231,131,0.3)", borderRadius:11, color:"#1CE783", fontSize:13, fontWeight:700, cursor:"pointer", marginBottom:10 }}>✅ 視聴済み — 次へ</button>
+          : <button onClick={markDone} style={{ width:"100%", padding:"11px", background:T.card, border:`1px solid ${T.border}`, borderRadius:11, color:T.muted, fontSize:13, cursor:"pointer", marginBottom:10 }}>✅ 見終わった！チェックイン</button>
         }
+
+        {/* Next-up suggestion (only after 75s, no auto-advance) */}
+        {showNextUp && !isLast && (
+          <div style={{ background:`${playlistColor}12`, border:`1px solid ${playlistColor}40`, borderRadius:13, padding:"13px 16px", display:"flex", alignItems:"center", gap:12, marginBottom:12, animation:"slideUp 0.3s ease" }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:10, color:playlistColor, fontWeight:700, letterSpacing:"0.08em", marginBottom:3 }}>次の作品</div>
+              <div style={{ fontSize:13, color:T.cream, fontWeight:600 }}>{titles[idx+1]?.title}</div>
+            </div>
+            <button onClick={goNext} style={{ background:playlistColor, border:"none", borderRadius:9, padding:"9px 14px", color:"#000", fontSize:12, fontWeight:800, cursor:"pointer", flexShrink:0 }}>次へ →</button>
+            <button onClick={()=>setShowNextUp(false)} style={{ background:"none", border:"none", color:T.dim, fontSize:13, cursor:"pointer", padding:2 }}>✕</button>
+          </div>
+        )}
 
         {/* Prev / Next */}
         <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-          <button onClick={goPrev} disabled={idx===0} style={{ flex:1, padding:"10px", background:T.card, border:`1px solid ${T.border}`, borderRadius:10, color:idx===0?T.dim:T.muted, fontSize:12, cursor:idx===0?"default":"pointer" }}>← 前</button>
-          <button onClick={goNext} disabled={isLast} style={{ flex:1, padding:"10px", background:T.card, border:`1px solid ${T.border}`, borderRadius:10, color:isLast?T.dim:T.muted, fontSize:12, cursor:isLast?"default":"pointer" }}>次 →</button>
+          <button onClick={goPrev} disabled={idx===0} style={{ flex:1, padding:"10px", background:T.card, border:`1px solid ${T.border}`, borderRadius:10, color:idx===0?T.dim:T.muted, fontSize:12, cursor:idx===0?"default":"pointer" }}>← 前の予告編</button>
+          <button onClick={goNext} disabled={isLast} style={{ flex:1, padding:"10px", background:T.card, border:`1px solid ${T.border}`, borderRadius:10, color:isLast?T.dim:T.muted, fontSize:12, cursor:isLast?"default":"pointer" }}>次の予告編 →</button>
         </div>
-
-        {/* Auto-skip countdown */}
-        {countdown !== null && (
-          <div style={{ background:`${playlistColor}12`, border:`1px solid ${playlistColor}40`, borderRadius:12, padding:"12px 16px", display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
-            <svg width="34" height="34" style={{ flexShrink:0 }}>
-              <circle cx="17" cy="17" r="13" fill="none" stroke={T.border} strokeWidth="2.5"/>
-              <circle cx="17" cy="17" r="13" fill="none" stroke={playlistColor} strokeWidth="2.5"
-                strokeDasharray={`${2*Math.PI*13}`} strokeDashoffset={`${2*Math.PI*13*(1-countdown/8)}`}
-                strokeLinecap="round" style={{ transition:"stroke-dashoffset 1s linear", transform:"rotate(-90deg)", transformOrigin:"17px 17px" }}/>
-              <text x="17" y="22" textAnchor="middle" fill={playlistColor} fontSize="11" fontWeight="700">{countdown}</text>
-            </svg>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:11, color:playlistColor, fontWeight:700, letterSpacing:"0.02em" }}>次の予告編へ自動スキップ</div>
-              <div style={{ fontSize:10, color:T.muted, marginTop:2 }}>{titles[idx+1]?.title}</div>
-            </div>
-            <button onClick={cancelCD} style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:8, padding:"5px 9px", color:T.muted, fontSize:10, cursor:"pointer" }}>停止</button>
-          </div>
-        )}
 
         {/* Queue */}
         <Label color={T.dim}>再生キュー</Label>
         {titles.map((t, i) => {
-          const sv=svc(t.service); const isActive=i===idx; const isDone=watched[t.id];
+          const isActive=i===idx; const isDone=watched[t.id];
           return (
-            <div key={t.id} onClick={()=>{cancelCD();setMode("trailer");setIdx(i);}}
+            <div key={t.id} onClick={()=>navigateTo(i)}
               style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 11px", borderRadius:10, marginBottom:5, background:isActive?`${playlistColor}15`:T.card, border:`1px solid ${isActive?playlistColor+"50":T.border}`, cursor:"pointer", opacity:isDone&&!isActive?0.5:1, transition:"all 0.2s" }}>
               <div style={{ fontSize:9, color:isDone?"#1CE783":isActive?playlistColor:T.dim, width:14, textAlign:"center", fontWeight:800 }}>{isDone?"✓":isActive?"▶":i+1}</div>
               <div style={{ fontSize:18 }}>{t.thumb}</div>
