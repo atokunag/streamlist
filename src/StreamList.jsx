@@ -350,7 +350,7 @@ function EpisodePicker({ title, serviceColor, onClose, onWatch, watched, onToggl
 }
 
 // ── Trailer Player ────────────────────────────────────────────────────────────
-function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onClose, onMarkWatched, onEnterWatching }) {
+function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onClose, onMarkWatched, onEnterWatching, subscribedSvcs=[] }) {
   const [idx,          setIdx]         = useState(startIndex);
   const [mode,         setMode]         = useState("trailer");
   const [watched,      setWatched]      = useState({});
@@ -573,9 +573,31 @@ function TrailerPlayer({ titles, startIndex=0, playlistName, playlistColor, onCl
         </div>
 
         {/* Primary CTA — watch on service */}
-        <button onClick={goWatch} style={{ width:"100%", padding:"16px", background:s?.color, border:"none", borderRadius:14, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer", marginBottom:8, boxSizing:"border-box", letterSpacing:"0.02em", boxShadow:`0 4px 20px ${s?.color}55` }}>
-          ▶ {s?.name} で{cur?.type==="ドラマ" && startEpLabel ? `${startEpLabel}から` : ""}本編を見る
-        </button>
+        {(() => {
+          const isSubscribed = !cur?.service || subscribedSvcs.includes(cur.service);
+          const epSuffix = cur?.type==="ドラマ" && startEpLabel ? `${startEpLabel}から` : "";
+          if (isSubscribed) {
+            return (
+              <button onClick={goWatch} style={{ width:"100%", padding:"16px", background:s?.color, border:"none", borderRadius:14, color:"#fff", fontSize:15, fontWeight:800, cursor:"pointer", marginBottom:8, boxSizing:"border-box", letterSpacing:"0.02em", boxShadow:`0 4px 20px ${s?.color}55` }}>
+                ▶ {s?.name} で{epSuffix}本編を見る
+              </button>
+            );
+          }
+          return (
+            <div style={{ marginBottom:8 }}>
+              <div style={{ background:`${T.gold}12`, border:`1px solid ${T.gold}40`, borderRadius:14, padding:"13px 16px", marginBottom:7, display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ fontSize:18 }}>⚠️</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:12, color:T.gold, fontWeight:700, marginBottom:2 }}>{s?.name} は未契約</div>
+                  <div style={{ fontSize:10, color:T.muted }}>ホームで契約設定を変更するか、下のボタンでサービスを確認</div>
+                </div>
+              </div>
+              <button onClick={goWatch} style={{ width:"100%", padding:"13px", background:T.card, border:`1px solid ${s?.color}50`, borderRadius:12, color:s?.color, fontSize:13, fontWeight:700, cursor:"pointer", boxSizing:"border-box" }}>
+                {s?.name} のページを確認する →
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Episode picker button for dramas */}
         {cur?.type === "ドラマ" && cur?.tmdbId && (
@@ -668,7 +690,8 @@ export default function StreamList() {
   const [tmdbLoading,  setTmdbLoading]  = useState(false);
   const [tmdbDetail,   setTmdbDetail]   = useState(null);
   const [detailLoading,setDetailLoading]= useState(false);
-  const [posters,      setPosters]      = useState({});
+  const [posters,        setPosters]        = useState({});
+  const [subscribedSvcs, setSubscribedSvcs] = useState(["netflix","prime","disney","unext","hulu"]);
   const searchTimer = useRef(null);
   const plId = useRef(20);
 
@@ -765,6 +788,7 @@ export default function StreamList() {
           titles={playerSess.titles} startIndex={playerSess.startIndex}
           playlistName={playerSess.playlistName} playlistColor={playerSess.playlistColor}
           onClose={()=>setPlayerSess(null)} onMarkWatched={onMarkWatched} onEnterWatching={onEnterWatching}
+          subscribedSvcs={subscribedSvcs}
         />
       )}
 
@@ -798,14 +822,22 @@ export default function StreamList() {
           <div>
             {/* Services */}
             <div style={{ marginBottom:28 }}>
-              <Label>登録中のサービス</Label>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                <Label>契約中のサービス</Label>
+                <div style={{ fontSize:10, color:T.dim }}>タップで切り替え</div>
+              </div>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
-                {SERVICES.map(s=>(
-                  <div key={s.id} style={{ background:T.card, borderRadius:12, padding:"12px 8px", display:"flex", flexDirection:"column", alignItems:"center", gap:7, cursor:"pointer", border:`1px solid ${T.border}` }}>
-                    <div style={{ width:38, height:38, borderRadius:10, background:`${s.color}14`, border:`1.5px solid ${s.color}50`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:800, color:s.color }}>{s.short}</div>
-                    <div style={{ fontSize:9, color:T.muted, textAlign:"center", letterSpacing:"0.03em" }}>{s.name}</div>
-                  </div>
-                ))}
+                {SERVICES.map(s=>{
+                  const isOn = subscribedSvcs.includes(s.id);
+                  return (
+                    <div key={s.id} onClick={()=>setSubscribedSvcs(p=>isOn?p.filter(i=>i!==s.id):[...p,s.id])}
+                      style={{ background: isOn ? `${s.color}12` : T.surface, borderRadius:12, padding:"12px 8px", display:"flex", flexDirection:"column", alignItems:"center", gap:7, cursor:"pointer", border:`1.5px solid ${isOn ? s.color+"60" : T.border}`, transition:"all 0.2s", position:"relative" }}>
+                      <div style={{ width:38, height:38, borderRadius:10, background: isOn ? `${s.color}20` : T.card, border:`1.5px solid ${isOn ? s.color : T.border}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:800, color: isOn ? s.color : T.dim, transition:"all 0.2s" }}>{s.short}</div>
+                      <div style={{ fontSize:9, color: isOn ? s.color : T.dim, textAlign:"center", letterSpacing:"0.03em", fontWeight: isOn ? 700 : 400 }}>{s.name}</div>
+                      {isOn && <div style={{ position:"absolute", top:6, right:8, width:7, height:7, borderRadius:"50%", background:s.color }} />}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
