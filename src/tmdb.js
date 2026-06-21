@@ -21,6 +21,12 @@ export function posterUrl(path) {
   return path ? `${IMG}${path}` : null;
 }
 
+export async function getPoster(id, mediaType) {
+  const res = await fetch(`${BASE}/${mediaType}/${id}?language=ja-JP`, { headers });
+  const data = await res.json();
+  return posterUrl(data.poster_path);
+}
+
 export async function searchTitles(query) {
   if (!query || query.length < 2) return [];
 

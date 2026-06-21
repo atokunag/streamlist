@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { searchTitles, getTitleDetails, posterUrl } from "./tmdb.js";
+import { searchTitles, getTitleDetails, posterUrl, getPoster } from "./tmdb.js";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -26,17 +26,17 @@ const SERVICES = [
 ];
 
 const TITLES = [
-  { id:1,  title:"オッペンハイマー",        type:"映画",  service:"netflix", year:2023, genre:"ドラマ",    duration:"180分",   thumb:"🎬", yt:"uYPbbksJxIg", desc:"原爆の父が向き合った光と影。クリストファー・ノーラン渾身の問題作。",         url:"https://www.netflix.com/title/81280779" },
-  { id:2,  title:"The Last of Us",          type:"ドラマ", service:"unext",   year:2023, genre:"アクション", duration:"S1 9話", thumb:"🎭", yt:"uLtkt6qdGbU", desc:"終末後の世界を旅するジョエルとエリー。ゲーム原作の傑作ドラマ化。",           url:"https://video.unext.jp/search?q=The+Last+of+Us" },
-  { id:3,  title:"ストレンジャー・シングス", type:"ドラマ", service:"netflix", year:2022, genre:"SF",       duration:"S4 9話", thumb:"🔮", yt:"sBEvEcpnG7k", desc:"ホーキンスの少年たちと逆さの世界の戦い。シーズン4は過去最高傑作。",         url:"https://www.netflix.com/search?q=ストレンジャーシングス" },
-  { id:4,  title:"SHOGUN 将軍",             type:"ドラマ", service:"disney",  year:2024, genre:"時代劇",   duration:"S1 10話", thumb:"⚔️", yt:"o1gwnWs7sSc", desc:"戦国時代の日本に流れ着いたイギリス人航海士の壮大な物語。",                 url:"https://www.disneyplus.com/ja-jp/series/shogun/77sCbAqhMU5H" },
-  { id:5,  title:"哀れなるものたち",         type:"映画",  service:"disney",  year:2023, genre:"ドラマ",    duration:"141分",   thumb:"🌸", yt:"W4IVkGMSUkk", desc:"死から蘇った女性ベラの奇想天外な自己探求の旅。ヴェネチア金獅子賞受賞。",   url:"https://www.disneyplus.com/ja-jp/movies/poor-things/3mJ4M8d77WXI" },
-  { id:6,  title:"ボーはおそれている",       type:"映画",  service:"netflix", year:2023, genre:"ホラー",    duration:"179分",   thumb:"😰", yt:"RNiDLGM9gAQ", desc:"アリ・アスター最新作。母の死の知らせから始まる悪夢の帰省。",               url:"https://www.netflix.com/search?q=ボーはおそれている" },
-  { id:7,  title:"全裸監督",                type:"ドラマ", service:"netflix", year:2021, genre:"コメディ",  duration:"S2 7話", thumb:"🎥", yt:"N01X3_2MBdw", desc:"AV業界に革命を起こした村西とおるの破天荒な実話。Netflix独占配信。",        url:"https://www.netflix.com/title/80239462" },
-  { id:8,  title:"CODA コーダ",             type:"映画",  service:"prime",   year:2021, genre:"ドラマ",    duration:"111分",   thumb:"🎵", yt:"O1N7T4S-bPU", desc:"ろう者の家族の中で一人だけ聴こえる少女の夢と葛藤。サンダンス映画祭席巻作。", url:"https://www.amazon.co.jp/s?k=CODA+コーダ&i=instant-video" },
-  { id:9,  title:"インセプション",           type:"映画",  service:"hulu",    year:2010, genre:"SF",       duration:"148分",   thumb:"🌀", yt:"YoHD9XEInc0", desc:"夢の中の夢を潜る泥棒たち。ノーランが仕掛けた壮大な知的迷宮。",             url:"https://www.hulu.jp/inception" },
-  { id:10, title:"ミッドサマー",             type:"映画",  service:"unext",   year:2019, genre:"ホラー",    duration:"148分",   thumb:"🌻", yt:"1Vnghdsjmd0", desc:"スウェーデンの白夜の祭りに迷い込んだカップルの悪夢。明るい画面のホラー。",   url:"https://video.unext.jp/search?q=ミッドサマー" },
-  { id:11, title:"パラサイト",               type:"映画",  service:"hulu",    year:2019, genre:"スリラー",  duration:"132分",   thumb:"🏠", yt:"5xH0HfJHsaY", desc:"貧富の格差を描いたポン・ジュノの傑作。アカデミー賞4冠達成。",               url:"https://www.hulu.jp/parasite" },
+  { id:1,  tmdbId:872585,  mediaType:"movie", title:"オッペンハイマー",        type:"映画",  service:"netflix", year:2023, genre:"ドラマ",    duration:"180分",   thumb:"🎬", yt:"uYPbbksJxIg", desc:"原爆の父が向き合った光と影。クリストファー・ノーラン渾身の問題作。",         url:"https://www.netflix.com/title/81280779" },
+  { id:2,  tmdbId:100088,  mediaType:"tv",    title:"The Last of Us",          type:"ドラマ", service:"unext",   year:2023, genre:"アクション", duration:"S1 9話", thumb:"🎭", yt:"uLtkt6qdGbU", desc:"終末後の世界を旅するジョエルとエリー。ゲーム原作の傑作ドラマ化。",           url:"https://video.unext.jp/search?q=The+Last+of+Us" },
+  { id:3,  tmdbId:66732,   mediaType:"tv",    title:"ストレンジャー・シングス", type:"ドラマ", service:"netflix", year:2022, genre:"SF",       duration:"S4 9話", thumb:"🔮", yt:"sBEvEcpnG7k", desc:"ホーキンスの少年たちと逆さの世界の戦い。シーズン4は過去最高傑作。",         url:"https://www.netflix.com/search?q=ストレンジャーシングス" },
+  { id:4,  tmdbId:126308,  mediaType:"tv",    title:"SHOGUN 将軍",             type:"ドラマ", service:"disney",  year:2024, genre:"時代劇",   duration:"S1 10話", thumb:"⚔️", yt:"o1gwnWs7sSc", desc:"戦国時代の日本に流れ着いたイギリス人航海士の壮大な物語。",                 url:"https://www.disneyplus.com/ja-jp/series/shogun/77sCbAqhMU5H" },
+  { id:5,  tmdbId:792307,  mediaType:"movie", title:"哀れなるものたち",         type:"映画",  service:"disney",  year:2023, genre:"ドラマ",    duration:"141分",   thumb:"🌸", yt:"W4IVkGMSUkk", desc:"死から蘇った女性ベラの奇想天外な自己探求の旅。ヴェネチア金獅子賞受賞。",   url:"https://www.disneyplus.com/ja-jp/movies/poor-things/3mJ4M8d77WXI" },
+  { id:6,  tmdbId:795514,  mediaType:"movie", title:"ボーはおそれている",       type:"映画",  service:"netflix", year:2023, genre:"ホラー",    duration:"179分",   thumb:"😰", yt:"RNiDLGM9gAQ", desc:"アリ・アスター最新作。母の死の知らせから始まる悪夢の帰省。",               url:"https://www.netflix.com/search?q=ボーはおそれている" },
+  { id:7,  tmdbId:94664,   mediaType:"tv",    title:"全裸監督",                type:"ドラマ", service:"netflix", year:2021, genre:"コメディ",  duration:"S2 7話", thumb:"🎥", yt:"N01X3_2MBdw", desc:"AV業界に革命を起こした村西とおるの破天荒な実話。Netflix独占配信。",        url:"https://www.netflix.com/title/80239462" },
+  { id:8,  tmdbId:776503,  mediaType:"movie", title:"CODA コーダ",             type:"映画",  service:"prime",   year:2021, genre:"ドラマ",    duration:"111分",   thumb:"🎵", yt:"O1N7T4S-bPU", desc:"ろう者の家族の中で一人だけ聴こえる少女の夢と葛藤。サンダンス映画祭席巻作。", url:"https://www.amazon.co.jp/s?k=CODA+コーダ&i=instant-video" },
+  { id:9,  tmdbId:27205,   mediaType:"movie", title:"インセプション",           type:"映画",  service:"hulu",    year:2010, genre:"SF",       duration:"148分",   thumb:"🌀", yt:"YoHD9XEInc0", desc:"夢の中の夢を潜る泥棒たち。ノーランが仕掛けた壮大な知的迷宮。",             url:"https://www.hulu.jp/inception" },
+  { id:10, tmdbId:530385,  mediaType:"movie", title:"ミッドサマー",             type:"映画",  service:"unext",   year:2019, genre:"ホラー",    duration:"148分",   thumb:"🌻", yt:"1Vnghdsjmd0", desc:"スウェーデンの白夜の祭りに迷い込んだカップルの悪夢。明るい画面のホラー。",   url:"https://video.unext.jp/search?q=ミッドサマー" },
+  { id:11, tmdbId:496243,  mediaType:"movie", title:"パラサイト",               type:"映画",  service:"hulu",    year:2019, genre:"スリラー",  duration:"132分",   thumb:"🏠", yt:"5xH0HfJHsaY", desc:"貧富の格差を描いたポン・ジュノの傑作。アカデミー賞4冠達成。",               url:"https://www.hulu.jp/parasite" },
 ];
 
 const PLAYLISTS_INIT = [
@@ -79,6 +79,26 @@ function ServiceBadge({ serviceId, size = "sm" }) {
     <span style={{ fontSize: size==="sm"?10:12, fontWeight:800, color:s.color, background:`${s.color}18`, borderRadius:5, padding:pad, letterSpacing:"0.05em" }}>
       {s.short}
     </span>
+  );
+}
+
+// ── Title Poster ──────────────────────────────────────────────────────────────
+function TitlePoster({ title, size = "md", posters = {} }) {
+  const url = title?.poster || posters[title?.id];
+  const sizes = {
+    xs: { w: 32, h: 48, r: 6,  emoji: 16 },
+    sm: { w: 40, h: 60, r: 8,  emoji: 20 },
+    md: { w: 48, h: 72, r: 10, emoji: 26 },
+    lg: { w: 60, h: 90, r: 12, emoji: 32 },
+  };
+  const s = sizes[size] || sizes.md;
+  if (url) {
+    return <img src={url} alt={title?.title} style={{ width:s.w, height:s.h, borderRadius:s.r, objectFit:"cover", flexShrink:0, display:"block" }} />;
+  }
+  return (
+    <div style={{ width:s.w, height:s.h, borderRadius:s.r, background:T.surface, border:`1px solid ${T.border}`, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:s.emoji }}>
+      {title?.thumb || "🎬"}
+    </div>
   );
 }
 
@@ -488,8 +508,21 @@ export default function StreamList() {
   const [tmdbLoading,  setTmdbLoading]  = useState(false);
   const [tmdbDetail,   setTmdbDetail]   = useState(null);
   const [detailLoading,setDetailLoading]= useState(false);
+  const [posters,      setPosters]      = useState({});
   const searchTimer = useRef(null);
   const plId = useRef(20);
+
+  useEffect(() => {
+    Promise.all(
+      TITLES.filter(t => t.tmdbId).map(t =>
+        getPoster(t.tmdbId, t.mediaType).then(url => ({ id: t.id, url }))
+      )
+    ).then(results => {
+      const map = {};
+      results.forEach(r => { if (r.url) map[r.id] = r.url; });
+      setPosters(map);
+    }).catch(() => {});
+  }, []);
 
   const showToast = (msg, color=T.gold) => { setToast({msg,color}); setTimeout(()=>setToast(null),2500); };
 
@@ -640,7 +673,7 @@ export default function StreamList() {
                 const t=titl(id); const s=svc(t?.service); if (!t) return null;
                 return (
                   <div key={id} style={{ background:T.card, borderRadius:12, padding:"12px 14px", display:"flex", alignItems:"center", gap:12, marginBottom:8, border:`1px solid ${T.border}` }}>
-                    <div style={{ fontSize:26 }}>{t.thumb}</div>
+                    <TitlePoster title={t} size="sm" posters={posters} />
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:13, fontWeight:700, color:T.cream, letterSpacing:"-0.01em" }}>{t.title}</div>
                       <div style={{ fontSize:10, color:T.muted, marginTop:2 }}>{t.type} · {t.duration}</div>
@@ -742,7 +775,7 @@ export default function StreamList() {
                 return (
                   <div key={t.id} style={{ background:T.card, borderRadius:14, padding:"14px", border:`1px solid ${T.border}` }}>
                     <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
-                      <div style={{ fontSize:36, flexShrink:0 }}>{t.thumb}</div>
+                      <TitlePoster title={t} size="lg" posters={posters} />
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:14, fontWeight:800, letterSpacing:"-0.02em", color:T.cream, marginBottom:2 }}>{t.title}</div>
                         <div style={{ fontSize:10, color:T.muted, marginBottom:6 }}>{t.year} · {t.genre} · {t.duration}</div>
@@ -827,7 +860,7 @@ export default function StreamList() {
                     return (
                       <div key={t.id} style={{ background:T.card, borderRadius:12, padding:"12px 14px", marginBottom:7, border:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:11 }}>
                         <div style={{ fontSize:11, color:T.dim, width:16, textAlign:"center", fontWeight:700 }}>{i+1}</div>
-                        <div style={{ fontSize:26 }}>{t.thumb}</div>
+                        <TitlePoster title={t} size="sm" posters={posters} />
                         <div style={{ flex:1 }}>
                           <div style={{ fontSize:13, fontWeight:700, color:T.cream, letterSpacing:"-0.01em" }}>{t.title}</div>
                           <div style={{ fontSize:10, color:T.muted, marginTop:2 }}>{t.type} · {t.duration}</div>
@@ -856,7 +889,7 @@ export default function StreamList() {
                 const t=titl(id); const s=svc(t?.service); if(!t) return null;
                 return (
                   <div key={id} style={{ background:T.card, borderRadius:12, padding:"12px 14px", marginBottom:7, border:`1px solid ${T.gold}25`, display:"flex", alignItems:"center", gap:11 }}>
-                    <div style={{ fontSize:24 }}>{t.thumb}</div>
+                    <TitlePoster title={t} size="sm" posters={posters} />
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:13, fontWeight:700, color:T.cream, letterSpacing:"-0.01em" }}>{t.title}</div>
                       <div style={{ fontSize:10, color:T.muted, marginTop:2 }}>{t.type} · {t.duration}</div>
@@ -875,7 +908,7 @@ export default function StreamList() {
                 const t=titl(id); const s=svc(t?.service); if(!t) return null;
                 return (
                   <div key={id} style={{ background:T.card, borderRadius:12, padding:"12px 14px", marginBottom:7, border:`1px solid rgba(28,231,131,0.15)`, display:"flex", alignItems:"center", gap:11, opacity:0.65 }}>
-                    <div style={{ fontSize:24 }}>{t.thumb}</div>
+                    <TitlePoster title={t} size="sm" posters={posters} />
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:13, fontWeight:700, color:T.muted, textDecoration:"line-through", letterSpacing:"-0.01em" }}>{t.title}</div>
                       <div style={{ fontSize:10, color:T.dim, marginTop:2 }}>✓ 視聴済み</div>
